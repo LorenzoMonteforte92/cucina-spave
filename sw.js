@@ -1,5 +1,5 @@
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open('cucina-spave-v2').then(c => c.addAll([
+  e.waitUntil(caches.open('cucina-spave-v3').then(c => c.addAll([
     './','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'
   ])));
 });
