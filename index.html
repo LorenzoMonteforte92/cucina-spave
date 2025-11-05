@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cucina Spave</title>
+  <meta name="theme-color" content="#f97316"/>
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <style>
+    :root{--bg:#f8f8f8;--card:#fff;--muted:#666;--text:#111;--ok:#16a34a;--danger:#dc2626;--border:#e5e5e5;--brand:#f97316}
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Ubuntu,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    header{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between;padding:16px 20px;background:linear-gradient(90deg,var(--brand),#ffb36b);color:#fff}
+    h1{margin:0;font-size:20px} .btn{border:1px solid var(--border);background:#fff;padding:8px 12px;border-radius:12px;cursor:pointer}
+    .btn.ok{background:var(--ok);color:#fff;border-color:transparent}.btn.danger{background:var(--danger);color:#fff;border-color:transparent}
+    .wrap{padding:12px 20px 24px;max-width:1300px;margin:0 auto} .grid{display:grid;grid-template-columns:1fr;gap:16px}
+    @media(min-width:1200px){.grid{grid-template-columns:1fr 2fr}} .card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+    label{font-size:13px;color:#444;display:block;margin-bottom:6px} input[type=text],input[type=number],textarea{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:12px;font-size:14px}
+    textarea{resize:vertical} .row{display:flex;gap:8px}.row>*{flex:1} .chips{display:flex;gap:8px;flex-wrap:wrap}
+    .chip{background:#f1f1f1;padding:6px 8px;border-radius:10px;font-size:13px;display:flex;align-items:center;gap:6px}
+    .muted{color:#666}.title{font-weight:600;font-size:18px;margin-bottom:10px}
+    .k{display:grid;grid-template-columns:1fr;gap:12px}@media(min-width:900px){.k{grid-template-columns:repeat(3,1fr)}}
+    .order{border:1px solid var(--border);border-radius:12px;padding:12px}.order .head{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:#666}
+    .list{list-style:none;padding:0;margin:8px 0 0}.list li{display:flex;justify-content:space-between;padding:2px 0}
+    .totals{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-top:10px}
+    .pill{display:flex;align-items:center;justify-content:space-between;background:#f3f3f3;padding:8px 10px;border-radius:12px}
+    details summary{cursor:pointer;font-weight:600} .dropdown{position:relative}
+    .dropdown .menu{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:12px;max-height:260px;overflow:auto;z-index:5}
+    .menu button{display:block;width:100%;text-align:left;padding:8px 10px;border:0;background:#fff;cursor:pointer}.menu button:hover{background:#f5f5f5}
+    .grid-pending{display:grid;grid-template-columns:1fr;gap:12px}@media(min-width:900px){.grid-pending{grid-template-columns:repeat(2,1fr)}}
+    @media(min-width:1250px){.grid-pending{grid-template-columns:repeat(3,1fr)}} .table-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:14px}
+    .table-card .hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+    .queue{display:grid;grid-template-columns:1fr;gap:8px}@media(min-width:900px){.queue{grid-template-columns:1fr 1fr}}
+    .queue .item{border:1px solid var(--border);border-radius:12px;padding:10px;background:#fff}.badge{font-size:11px;padding:2px 6px;border-radius:999px;background:#eef}
+    .bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.on{color:#0a7;font-weight:600}.off{color:#fff;font-weight:600;opacity:.9}
+    footer{text-align:center;color:#666;font-size:12px;padding:18px}
+    dialog{border:0;border-radius:14px;max-width:720px;width:92%;padding:0} dialog form{padding:16px}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🍺 Cucina Spave</h1>
+    <div class="bar">
+      <span>Sync:</span> <strong id="syncBadge" class="off">OFF</strong>
+      <button id="setupSyncBtn" class="btn">Configura Realtime</button>
+      <button id="importMenuBtn" class="btn">Importa menù</button>
+      <button id="exportBtn" class="btn">Esporta</button>
+      <button id="clearBtn" class="btn danger">Azzera pendenti</button>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="grid">
+      <section class="card">
+        <div class="title">Nuovo ordine</div>
+        <label>Tavolo</label>
+        <input id="tableInput" type="text" placeholder="Es. Tommaso centrale"/>
+
+        <div style="margin-top:12px;">
+          <label>Aggiungi prodotti</label>
+          <div class="row">
+            <div class="dropdown">
+              <input id="menuSearch" type="text" placeholder="Cerca nel menù…" autocomplete="off"/>
+              <div id="menuList" class="menu" style="display:none;"></div>
+            </div>
+            <input id="qtyInput" type="number" min="1" value="1" style="flex:0 0 90px;"/>
+            <button id="addItemBtn" class="btn" style="flex:0 0 auto;">Aggiungi</button>
+          </div>
+          <div class="muted" style="font-size:12px;margin-top:4px;">Menù pre-caricato. Puoi importare/aggiungere voci personalizzate.</div>
+
+          <div id="draftWrap" style="margin-top:8px;display:none;">
+            <div class="muted" style="font-size:13px;margin-bottom:4px;">Riepilogo ordine</div>
+            <div id="draftChips" class="chips"></div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;">
+          <label>Note (opzionale)</label>
+          <textarea id="noteInput" rows="2" placeholder="Es. senza salsa, allergeni, tempi…"></textarea>
+        </div>
+
+        <div class="row" style="margin-top:12px;justify-content:flex-end;">
+          <button id="submitBtn" class="btn ok">Invia in cucina</button>
+          <button id="cancelBtn" class="btn">Annulla</button>
+        </div>
+      </section>
+
+      <section>
+        <div class="row" style="align-items:center;justify-content:space-between;margin:6px 0 10px;">
+          <div class="title" style="margin:0;">Ordini pendenti</div>
+          <div class="muted" id="pendingCount">Totale ordini: 0</div>
+        </div>
+        <div id="pendingWrap" class="grid-pending"></div>
+      </section>
+
+      <section class="card" style="grid-column: 1 / -1;">
+        <div class="row" style="align-items:center;justify-content:space-between;">
+          <div class="title" style="margin:0;">Totale prodotti (pendenti)</div>
+          <div class="muted" id="totalsCount">Voci: 0</div>
+        </div>
+        <div id="totalsWrap" class="totals"></div>
+      </section>
+
+      <section class="card" style="grid-column: 1 / -1;">
+        <div class="title">Coda di preparazione (ordine di arrivo)</div>
+        <div class="queue">
+          <div>
+            <div class="muted" style="margin-bottom:6px;">Panini</div>
+            <div id="queuePanini"></div>
+          </div>
+          <div>
+            <div class="muted" style="margin-bottom:6px;">Fritti / Appetizer</div>
+            <div id="queueFritti"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" style="grid-column: 1 / -1;">
+        <details open>
+          <summary>Completati (<span id="completedCount">0</span>)</summary>
+          <div id="completedWrap" class="k" style="margin-top:10px;"></div>
+        </details>
+      </section>
+    </div>
+  </div>
+
+  <footer>
+    PWA: apri questo link in Safari e poi “Condividi → Aggiungi a schermata Home”.
+  </footer>
+
+  <!-- Dialog: configurazione Firebase -->
+  <dialog id="syncDialog">
+    <form method="dialog">
+      <h3>Configura Realtime (Firebase)</h3>
+      <p class="muted">Incolla qui l'oggetto di configurazione (apiKey, authDomain, projectId, appId...).</p>
+      <textarea id="firebaseConfigText" rows="10" style="width:100%;"></textarea>
+      <div class="row" style="margin-top:8px;justify-content:flex-end;">
+        <button class="btn">Chiudi</button>
+        <button id="applyConfigBtn" type="button" class="btn ok">Attiva</button>
+      </div>
+      <p class="muted" style="font-size:12px;margin-top:8px;">
+        Consiglio: Firestore in <b>Test Mode</b> per iniziare (scade dopo 30gg). In produzione metti regole su dominio.
+      </p>
+    </form>
+  </dialog>
+
+  <script>
+    const PRESET_MENU = [
+      "Patatine fritte","Nachos","Il triangolo sì!","Patatine fritte special",
+      "Anelli di cipolla","Nuggets di pollo","Majalacheese","Ali dal Mejico",
+      "Mediterraneo","Corazon Empanado","Schimichurri",
+      "Hamburger","Cheeseburger","Veggie Burger","BlackBurger","PinkBurger Digievoluto","Winnie The Boh","Hot Dog","Spaventapasseri",
+      "Donuts"
+    ];
+    const CATEGORY_MAP = {
+      "Patatine fritte":"Appetizer","Nachos":"Appetizer","Il triangolo sì!":"Appetizer","Patatine fritte special":"Appetizer","Anelli di cipolla":"Appetizer","Nuggets di pollo":"Appetizer","Majalacheese":"Appetizer","Ali dal Mejico":"Appetizer",
+      "Mediterraneo":"Special Burger","Corazon Empanado":"Special Burger","Schimichurri":"Special Burger",
+      "Hamburger":"Panini","Cheeseburger":"Panini","Veggie Burger":"Panini","BlackBurger":"Panini","PinkBurger Digievoluto":"Panini","Winnie The Boh":"Panini","Hot Dog":"Panini","Spaventapasseri":"Panini",
+      "Donuts":"Dolci"
+    };
+
+    const store = { get(k,f){ try{ return JSON.parse(localStorage.getItem(k)) ?? f; }catch{return f;} }, set(k,v){ localStorage.setItem(k, JSON.stringify(v)); } };
+
+    let menuItems = store.get("kds_menu", PRESET_MENU.slice());
+    let orders = store.get("kds_orders", []);
+    let completed = store.get("kds_completed", []);
+    let draft = [];
+
+    const tableInput=document.getElementById('tableInput');
+    const noteInput=document.getElementById('noteInput');
+    const menuSearch=document.getElementById('menuSearch');
+    const menuList=document.getElementById('menuList');
+    const qtyInput=document.getElementById('qtyInput');
+    const addItemBtn=document.getElementById('addItemBtn');
+    const submitBtn=document.getElementById('submitBtn');
+    const cancelBtn=document.getElementById('cancelBtn');
+    const draftWrap=document.getElementById('draftWrap');
+    const draftChips=document.getElementById('draftChips');
+    const pendingWrap=document.getElementById('pendingWrap');
+    const pendingCount=document.getElementById('pendingCount');
+    const totalsWrap=document.getElementById('totalsWrap');
+    const totalsCount=document.getElementById('totalsCount');
+    const completedWrap=document.getElementById('completedWrap');
+    const completedCount=document.getElementById('completedCount');
+    const importMenuBtn=document.getElementById('importMenuBtn');
+    const exportBtn=document.getElementById('exportBtn');
+    const clearBtn=document.getElementById('clearBtn');
+    const queuePanini=document.getElementById('queuePanini');
+    const queueFritti=document.getElementById('queueFritti');
+    const setupSyncBtn=document.getElementById('setupSyncBtn');
+    const syncDialog=document.getElementById('syncDialog');
+    const firebaseConfigText=document.getElementById('firebaseConfigText');
+    const applyConfigBtn=document.getElementById('applyConfigBtn');
+    const syncBadge=document.getElementById('syncBadge');
+
+    const uid = () => Math.random().toString(36).slice(2,9);
+    const nowISO = () => new Date().toISOString();
+    const catOf = (n) => CATEGORY_MAP[n] || "Altro";
+    const escapeHtml = (s) => (s ?? '').toString().replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+    const saveAll = () => { store.set("kds_menu",menuItems); store.set("kds_orders",orders); store.set("kds_completed",completed); };
+
+    let db=null, unsub=null;
+    function setSync(on){ syncBadge.textContent = on ? 'ON' : 'OFF'; syncBadge.className = on ? 'on' : 'off'; }
+
+    setupSyncBtn.addEventListener('click', ()=>{
+      firebaseConfigText.value = store.get("kds_fbconfig","");
+      syncDialog.showModal();
+    });
+
+    applyConfigBtn.addEventListener('click', async ()=>{
+      try{
+        const cfg = JSON.parse(firebaseConfigText.value);
+        store.set("kds_fbconfig", firebaseConfigText.value);
+        await loadScript("https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js");
+        await loadScript("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js");
+        const app = window.firebase.initializeApp(cfg);
+        db = window.firebase.firestore(app);
+        startRealtime();
+        setSync(true);
+        syncDialog.close();
+        alert("Realtime attivo! Apri lo stesso link su un altro device e incolla la stessa config.");
+      }catch(e){
+        alert("Config non valida: " + e);
+      }
+    });
+
+    function loadScript(src){
+      return new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+    }
+
+    function startRealtime(){
+      if(!db) return;
+      unsub && unsub();
+      unsub = db.collection("orders").orderBy("createdAt","asc").onSnapshot((snap)=>{
+        const arr=[]; snap.forEach(doc=>arr.push({id:doc.id, ...doc.data()}));
+        orders = arr; renderAll();
+      });
+    }
+    async function cloudAdd(order){ if(!db) return null; const ref = await db.collection("orders").add(order); return ref.id; }
+    async function cloudPatch(id,patch){ if(!db) return; await db.collection("orders").doc(id).update(patch); }
+    async function cloudDelete(id){ if(!db) return; await db.collection("orders").doc(id).delete(); }
+
+    function renderMenuSuggestions(){
+      const q = menuSearch.value.trim().toLowerCase();
+      const items=(q ? menuItems.filter(m=>m.toLowerCase().includes(q)) : menuItems.slice()).sort();
+      menuList.innerHTML = items.slice(0,60).map(m=>`<button type="button" data-name="${escapeHtml(m)}">${escapeHtml(m)}</button>`).join('');
+      menuList.style.display = items.length ? 'block':'none';
+    }
+    function renderDraft(){
+      draftWrap.style.display = draft.length ? 'block' : 'none';
+      draftChips.innerHTML = draft.map(d=>`<span class="chip"><strong>${d.qty}×</strong> ${escapeHtml(d.name)} <button class="btn" style="padding:2px 6px" data-remove="${escapeHtml(d.name)}">✕</button></span>`).join('');
+    }
+    function totalsFromOrders(list){
+      const map=new Map(); for(const o of list) for(const it of o.items) map.set(it.name,(map.get(it.name)||0)+Number(it.qty||0));
+      return Array.from(map.entries()).sort((a,b)=>a[0].localeCompare(b[0]));
+    }
+    function groupByTable(list){
+      const map=new Map(); for(const o of list){ if(!map.has(o.table)) map.set(o.table,[]); map.get(o.table).push(o); }
+      return Array.from(map.entries()).sort((a,b)=>a[0].localeCompare(b[0]));
+    }
+    function renderPending(){
+      pendingCount.textContent = `Totale ordini: ${orders.length}`;
+      const groups = groupByTable(orders);
+      if(groups.length===0){ pendingWrap.innerHTML = `<div class="card muted">Nessun ordine pendente.</div>`; return; }
+      pendingWrap.innerHTML = groups.map(([table,arr])=>`
+        <div class="table-card">
+          <div class="hdr">
+            <div><div class="muted" style="font-size:12px;">Tavolo</div><div style="font-weight:600;">${escapeHtml(table)}</div></div>
+            <div class="muted" style="font-size:12px;">${arr.length} ordine/i</div>
+          </div>
+          <div class="k">
+            ${arr.map(o=>`
+              <div class="order">
+                <div class="head"><span>${new Date(o.createdAt).toLocaleTimeString()}</span></div>
+                <ul class="list">
+                  ${o.items.map(it=>`<li><span>${escapeHtml(it.name)}</span><strong>${it.qty}×</strong></li>`).join('')}
+                </ul>
+                ${o.note?`<div class="muted" style="margin-top:6px;font-style:italic;">💬 ${escapeHtml(o.note)}</div>`:''}
+                <div class="row" style="gap:8px;margin-top:8px;">
+                  <button class="btn ok" data-ready="${o.id}">Pronto</button>
+                  <button class="btn" data-del="${o.id}">Elimina</button>
+                </div>
+              </div>`).join('')}
+          </div>
+        </div>`).join('');
+    }
+    function renderTotals(){
+      const t=totalsFromOrders(orders);
+      totalsCount.textContent=`Voci: ${t.length}`;
+      totalsWrap.innerHTML=t.map(([name,qty])=>`<div class="pill"><span title="${escapeHtml(name)}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:70%;">${escapeHtml(name)}</span><strong>${qty}×</strong></div>`).join('');
+    }
+    function buildPriorityQueues(){
+      const arr=orders.slice().sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt));
+      const qPanini=[],qFritti=[];
+      for(const o of arr){
+        for(const it of o.items){
+          const cat=catOf(it.name);
+          const entry=`<div class="item"><div class="row" style="align-items:center;justify-content:space-between;"><strong>${escapeHtml(it.name)}</strong><span class="badge">${it.qty}×</span></div><div class="muted" style="font-size:12px;">Tavolo: ${escapeHtml(o.table)} • ${new Date(o.createdAt).toLocaleTimeString()}</div></div>`;
+          if(cat==="Panini" || cat==="Special Burger") qPanini.push(entry);
+          else if(cat==="Appetizer") qFritti.push(entry);
+        }
+      }
+      return {qPanini,qFritti};
+    }
+    function renderQueues(){
+      const {qPanini,qFritti}=buildPriorityQueues();
+      queuePanini.innerHTML=qPanini.length?qPanini.join(''):'<div class="muted">—</div>';
+      queueFritti.innerHTML=qFritti.length?qFritti.join(''):'<div class="muted">—</div>';
+    }
+    function renderCompleted(){
+      completedCount.textContent = completed.length;
+      if(!completed.length){ completedWrap.innerHTML=''; return; }
+      completedWrap.innerHTML = completed.map(o=>`
+        <div class="order">
+          <div class="head"><span>${escapeHtml(o.table)}</span><span>${new Date(o.createdAt).toLocaleTimeString()} → ${new Date(o.readyAt).toLocaleTimeString()}</span></div>
+          <ul class="list">${o.items.map(it=>`<li><span>${escapeHtml(it.name)}</span><strong>${it.qty}×</strong></li>`).join('')}</ul>
+        </div>`).join('');
+    }
+    function renderAll(){ renderMenuSuggestions(); renderDraft(); renderPending(); renderTotals(); renderQueues(); renderCompleted(); saveAll(); }
+
+    menuSearch.addEventListener('input',renderMenuSuggestions);
+    menuList.addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b) return; menuSearch.value=b.dataset.name; menuList.style.display='none'; });
+    document.addEventListener('click', e=>{ if(!e.target.closest('.dropdown')) menuList.style.display='none'; });
+
+    addItemBtn.addEventListener('click', ()=>{
+      const name=(menuSearch.value||'').trim(); const qty=Math.max(1,Number(qtyInput.value||1));
+      if(!name) return;
+      const idx=draft.findIndex(d=>d.name===name);
+      if(idx>=0) draft[idx].qty+=qty; else draft.push({name,qty});
+      menuSearch.value=''; qtyInput.value=1; renderDraft();
+    });
+    draftChips.addEventListener('click', e=>{ const btn=e.target.closest('button'); if(!btn) return; const n=btn.dataset.remove; draft=draft.filter(d=>d.name!==n); renderDraft(); });
+
+    submitBtn.addEventListener('click', async ()=>{
+      const table=(tableInput.value||'').trim(); if(!table || draft.length===0) return;
+      const order={ table, items:draft.slice(), note:(noteInput.value||'').trim(), createdAt: nowISO() };
+      draft=[]; tableInput.value=''; noteInput.value=''; menuSearch.value=''; qtyInput.value=1;
+      if(db){ try{ await cloudAdd(order); }catch(e){ alert('Errore cloud, salvo locale: '+e); orders.unshift({...order, id: uid()}); } }
+      else { orders.unshift({...order, id: uid()}); }
+      renderAll();
+    });
+    cancelBtn.addEventListener('click', ()=>{ draft=[]; tableInput.value=''; noteInput.value=''; menuSearch.value=''; qtyInput.value=1; renderAll(); });
+
+    pendingWrap.addEventListener('click', async (e)=>{
+      const btn=e.target.closest('button'); if(!btn) return;
+      if(btn.dataset.ready){
+        const id=btn.dataset.ready;
+        const idx=orders.findIndex(o=>o.id===id);
+        if(idx>=0){
+          const [done]=orders.splice(idx,1); done.readyAt=nowISO(); completed.unshift(done);
+          if(db) try{ await cloudPatch(id,{status:'ready',readyAt:done.readyAt}); }catch{}
+          renderAll();
+        }
+      } else if(btn.dataset.del){
+        const id=btn.dataset.del;
+        orders = orders.filter(o=>o.id!==id);
+        if(db) try{ await cloudDelete(id); }catch{}
+        renderAll();
+      }
+    });
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(()=>{});
+    }
+    renderAll();
+  </script>
+</body>
+</html>
