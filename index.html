@@ -8,19 +8,21 @@
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="apple-touch-icon" href="./icon-192.png">
   <style>
-    :root{--bg:#f8f8f8;--card:#fff;--muted:#666;--text:#111;--ok:#16a34a;--danger:#dc2626;--border:#e5e5e5;--brand:#f97316}
+    :root{--bg:#f8f8f8;--card:#fff;--muted:#666;--text:#111;--ok:#16a34a;--danger:#dc2626;--border:#e5e5e5;--brand:#f97316;--light-brand:#fff7ed;}
     *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Ubuntu,Arial,sans-serif;background:var(--bg);color:var(--text)}
     header{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between;padding:16px 20px;background:linear-gradient(90deg,var(--brand),#ffb36b);color:#fff}
     h1{margin:0;font-size:20px} .btn{border:1px solid var(--border);background:#fff;padding:8px 12px;border-radius:12px;cursor:pointer}
     .btn.ok{background:var(--ok);color:#fff;border-color:transparent}.btn.danger{background:var(--danger);color:#fff;border-color:transparent}
     .wrap{padding:12px 20px 24px;max-width:1300px;margin:0 auto} .grid{display:grid;grid-template-columns:1fr;gap:16px}
     @media(min-width:1200px){.grid{grid-template-columns:1fr 2fr}} .card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
-    label{font-size:13px;color:#444;display:block;margin-bottom:6px} input[type=text],input[type=number],textarea{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:12px;font-size:14px}
+    label{font-size:13px;color:#444;display:block;margin-bottom:6px} input[type=text],input[type=number],textarea,select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:12px;font-size:14px}
     textarea{resize:vertical} .row{display:flex;gap:8px}.row>*{flex:1} .chips{display:flex;gap:8px;flex-wrap:wrap}
     .chip{background:#f1f1f1;padding:6px 8px;border-radius:10px;font-size:13px;display:flex;align-items:center;gap:6px}
     .muted{color:#666}.title{font-weight:600;font-size:18px;margin-bottom:10px}
     .k{display:grid;grid-template-columns:1fr;gap:12px}@media(min-width:900px){.k{grid-template-columns:repeat(3,1fr)}}
     .order{border:1px solid var(--border);border-radius:12px;padding:12px}.order .head{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:#666}
+    /* NUOVO: Stile per ordine selezionato */
+    .order.selected{border-color:var(--brand); border-width:2px; background:var(--light-brand);} 
     .list{list-style:none;padding:0;margin:8px 0 0}.list li{display:flex;justify-content:space-between;padding:2px 0}
     .totals{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-top:10px}
     .pill{display:flex;align-items:center;justify-content:space-between;background:#f3f3f3;padding:8px 10px;border-radius:12px}
@@ -33,6 +35,8 @@
     .queue{display:grid;grid-template-columns:1fr;gap:8px}@media(min-width:900px){.queue{grid-template-columns:1fr 1fr}}
     .queue .item{border:1px solid var(--border);border-radius:12px;padding:10px;background:#fff}.badge{font-size:11px;padding:2px 6px;border-radius:999px;background:#eef}
     .bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.on{color:#0a7;font-weight:600}.off{color:#fff;font-weight:600;opacity:.9}
+    .recipes-wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-top:10px}
+    .recipe-list{display:flex;flex-direction:column;gap:10px} .recipe-item{display:grid;grid-template-columns:3fr 1fr 1fr auto;gap:8px;align-items:center;padding:6px 0}
     footer{text-align:center;color:#666;font-size:12px;padding:18px}
     dialog{border:0;border-radius:14px;max-width:720px;width:92%;padding:0} dialog form{padding:16px}
   </style>
@@ -43,7 +47,7 @@
     <div class="bar">
       <span>Sync:</span> <strong id="syncBadge" class="off">OFF</strong>
       <button id="setupSyncBtn" class="btn">Configura Realtime</button>
-      <button id="importMenuBtn" class="btn">Importa menù</button>
+      <button id="manageMenuBtn" class="btn">Gestisci Menù</button>
       <button id="exportBtn" class="btn">Esporta</button>
       <button id="clearBtn" class="btn danger">Azzera pendenti</button>
     </div>
@@ -66,7 +70,7 @@
             <input id="qtyInput" type="number" min="1" value="1" style="flex:0 0 90px;"/>
             <button id="addItemBtn" class="btn" style="flex:0 0 auto;">Aggiungi</button>
           </div>
-          <div class="muted" style="font-size:12px;margin-top:4px;">Menù pre-caricato. Puoi importare/aggiungere voci personalizzate.</div>
+          <div class="muted" style="font-size:12px;margin-top:4px;">Menù gestito tramite il pulsante in alto "Gestisci Menù".</div>
 
           <div id="draftWrap" style="margin-top:8px;display:none;">
             <div class="muted" style="font-size:13px;margin-bottom:4px;">Riepilogo ordine</div>
@@ -85,6 +89,17 @@
         </div>
       </section>
 
+      <section class="card">
+        <div class="row" style="align-items:center;justify-content:space-between;margin:0 0 10px;">
+          <div class="title" style="margin:0;">Materie Prime Totali</div>
+          <div class="muted" id="recipeCount">Ingredienti: 0</div>
+          <button id="clearSelectionBtn" class="btn" style="padding:4px 8px;font-size:12px;display:none;">Cancella Selezione</button>
+        </div>
+        <div id="recipeTotalsWrap" class="recipes-wrap">
+          <div class="muted" style="grid-column: 1 / -1;">Nessun ingrediente da calcolare.</div>
+        </div>
+      </section>
+      
       <section>
         <div class="row" style="align-items:center;justify-content:space-between;margin:6px 0 10px;">
           <div class="title" style="margin:0;">Ordini pendenti</div>
@@ -128,7 +143,6 @@
     PWA: apri questo link in Safari e poi “Condividi → Aggiungi a schermata Home”.
   </footer>
 
-  <!-- Dialog: configurazione Firebase -->
   <dialog id="syncDialog">
     <form method="dialog">
       <h3>Configura Realtime (Firebase)</h3>
@@ -144,28 +158,106 @@
     </form>
   </dialog>
 
-  <script>
-    const PRESET_MENU = [
-      "Patatine fritte","Nachos","Il triangolo sì!","Patatine fritte special",
-      "Anelli di cipolla","Nuggets di pollo","Majalacheese","Ali dal Mejico",
-      "Mediterraneo","Corazon Empanado","Schimichurri",
-      "Hamburger","Cheeseburger","Veggie Burger","BlackBurger","PinkBurger Digievoluto","Winnie The Boh","Hot Dog","Spaventapasseri",
-      "Donuts"
-    ];
-    const CATEGORY_MAP = {
-      "Patatine fritte":"Appetizer","Nachos":"Appetizer","Il triangolo sì!":"Appetizer","Patatine fritte special":"Appetizer","Anelli di cipolla":"Appetizer","Nuggets di pollo":"Appetizer","Majalacheese":"Appetizer","Ali dal Mejico":"Appetizer",
-      "Mediterraneo":"Special Burger","Corazon Empanado":"Special Burger","Schimichurri":"Special Burger",
-      "Hamburger":"Panini","Cheeseburger":"Panini","Veggie Burger":"Panini","BlackBurger":"Panini","PinkBurger Digievoluto":"Panini","Winnie The Boh":"Panini","Hot Dog":"Panini","Spaventapasseri":"Panini",
-      "Donuts":"Dolci"
-    };
+  <dialog id="menuDialog">
+    <form method="dialog" onsubmit="return false;">
+      <h3>Gestione Menù e Ricette</h3>
+      <div class="row">
+        <select id="recipeSelect" style="flex:1;">
+          <option value="">— Seleziona o aggiungi un prodotto —</option>
+        </select>
+        <button id="addProductBtn" class="btn ok" style="flex:0 0 100px;">Nuovo</button>
+      </div>
+      
+      <div id="recipeDetail" style="margin-top:16px;border:1px dashed var(--border);padding:12px;border-radius:12px;display:none;">
+        <h4 style="margin-top:0;">Dettagli Prodotto</h4>
+        <label>Nome Prodotto</label>
+        <input id="productNameInput" type="text" placeholder="Es. BlackBurger" required/>
+        
+        <label style="margin-top:8px;">Categoria (per code)</label>
+        <input id="productCategoryInput" type="text" placeholder="Es. Panini" required/>
 
+        <div style="margin-top:12px;">
+          <h4 style="margin-bottom:8px;">Ricetta (Ingredienti)</h4>
+          <div class="recipe-item" style="font-weight:600;font-size:13px;color:#444;">
+            <span>Ingrediente</span><span>Quantità</span><span>Unità</span><span></span>
+          </div>
+          <div id="ingredientsList" class="recipe-list">
+            </div>
+
+          <div class="row" style="margin-top:10px;align-items:center;">
+            <input id="ingNameInput" type="text" placeholder="Nome ingrediente"/>
+            <input id="ingQtyInput" type="number" min="0.1" value="1" placeholder="Qty" style="flex:0 0 70px;"/>
+            <input id="ingUnitInput" type="text" placeholder="Unità (es. pz, gr)" style="flex:0 0 70px;"/>
+            <button id="addIngredientBtn" type="button" class="btn ok" style="flex:0 0 70px;">+</button>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:16px;justify-content:flex-end;">
+          <button id="deleteProductBtn" type="button" class="btn danger">Elimina Prodotto</button>
+          <button id="saveProductBtn" type="button" class="btn ok">Salva Prodotto</button>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:16px;justify-content:flex-end;">
+        <button class="btn">Chiudi</button>
+      </div>
+    </form>
+  </dialog>
+  
+  <script>
+    // =================================================================
+    //  STRUTTURA RICETTE DEFAULT (USATA LA PRIMA VOLTA)
+    // =================================================================
+    const DEFAULT_RECIPES = {
+      "BlackBurger": {
+        category: "Panini",
+        items: [
+          { name: "Pane Nero", qty: 1, unit: "pz" },
+          { name: "Hamburger 200g", qty: 1, unit: "pz" },
+          { name: "Cheddar", qty: 1, unit: "fet." },
+          { name: "Pancetta", qty: 2, unit: "fet." },
+          { name: "Patatine (mini)", qty: 1, unit: "porz." },
+        ]
+      },
+      "Ali dal Mejico": {
+        category: "Appetizer",
+        items: [
+          { name: "Alette di pollo", qty: 6, unit: "pz" },
+          { name: "Salsa BBQ", qty: 1, unit: "porz." },
+        ]
+      },
+      "Patatine fritte": {
+        category: "Appetizer",
+        items: [
+          { name: "Patate fritte (grandi)", qty: 1, unit: "porz." }
+        ]
+      },
+      "Donuts al cioccolato": { 
+        category: "Dolci", 
+        items: [
+          { name: "Donut al cioccolato", qty: 1, unit: "pz" }
+        ] 
+      }
+    };
+    
+    // Inizializzazione storage e variabili globali
     const store = { get(k,f){ try{ return JSON.parse(localStorage.getItem(k)) ?? f; }catch{return f;} }, set(k,v){ localStorage.setItem(k, JSON.stringify(v)); } };
 
-    let menuItems = store.get("kds_menu", PRESET_MENU.slice());
+    // PRESET_RECIPES ORA CARICA DA LOCALSTORAGE o usa il DEFAULT. Sarà sovrascritto dal listener Firebase se attivo.
+    let PRESET_RECIPES = store.get("kds_recipes", DEFAULT_RECIPES);
+    let PRESET_MENU = Object.keys(PRESET_RECIPES).sort();
+
+    let menuItems = PRESET_MENU.slice(); 
     let orders = store.get("kds_orders", []);
     let completed = store.get("kds_completed", []);
     let draft = [];
+    let currentRecipe = null; // Ricetta attualmente in modifica nel dialog
+    
+    // NUOVO: Array per tenere traccia degli ordini selezionati per il calcolo ricette.
+    let selectedOrderIds = store.get("kds_selected", []);
 
+
+    // Riferimenti DOM
     const tableInput=document.getElementById('tableInput');
     const noteInput=document.getElementById('noteInput');
     const menuSearch=document.getElementById('menuSearch');
@@ -182,7 +274,6 @@
     const totalsCount=document.getElementById('totalsCount');
     const completedWrap=document.getElementById('completedWrap');
     const completedCount=document.getElementById('completedCount');
-    const importMenuBtn=document.getElementById('importMenuBtn');
     const exportBtn=document.getElementById('exportBtn');
     const clearBtn=document.getElementById('clearBtn');
     const queuePanini=document.getElementById('queuePanini');
@@ -192,13 +283,46 @@
     const firebaseConfigText=document.getElementById('firebaseConfigText');
     const applyConfigBtn=document.getElementById('applyConfigBtn');
     const syncBadge=document.getElementById('syncBadge');
+    const recipeTotalsWrap=document.getElementById('recipeTotalsWrap');
+    const recipeCount=document.getElementById('recipeCount');
+    const clearSelectionBtn=document.getElementById('clearSelectionBtn'); // NUOVO
 
+    const manageMenuBtn=document.getElementById('manageMenuBtn');
+    const menuDialog=document.getElementById('menuDialog');
+    const recipeSelect=document.getElementById('recipeSelect');
+    const addProductBtn=document.getElementById('addProductBtn');
+    const recipeDetail=document.getElementById('recipeDetail');
+    const productNameInput=document.getElementById('productNameInput');
+    const productCategoryInput=document.getElementById('productCategoryInput');
+    const ingredientsList=document.getElementById('ingredientsList');
+    const ingNameInput=document.getElementById('ingNameInput');
+    const ingQtyInput=document.getElementById('ingQtyInput');
+    const ingUnitInput=document.getElementById('ingUnitInput');
+    const addIngredientBtn=document.getElementById('addIngredientBtn');
+    const deleteProductBtn=document.getElementById('deleteProductBtn');
+    const saveProductBtn=document.getElementById('saveProductBtn');
+
+
+    // Funzioni helper
     const uid = () => Math.random().toString(36).slice(2,9);
     const nowISO = () => new Date().toISOString();
-    const catOf = (n) => CATEGORY_MAP[n] || "Altro";
+    const catOf = (n) => PRESET_RECIPES[n]?.category || "Altro"; 
     const escapeHtml = (s) => (s ?? '').toString().replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
-    const saveAll = () => { store.set("kds_menu",menuItems); store.set("kds_orders",orders); store.set("kds_completed",completed); };
+    
+    // Aggiornamento dello storage locale
+    const saveAll = () => { 
+      if (!db) {
+        // Salvataggio locale solo se Firebase non è attivo
+        store.set("kds_recipes", PRESET_RECIPES); 
+        store.set("kds_orders",orders); 
+        store.set("kds_completed",completed); 
+      }
+      // NUOVO: Salvataggio dello stato di selezione (locale su tutti)
+      store.set("kds_selected", selectedOrderIds);
+    };
 
+
+    // Logica Firebase (Firestore) - Stessa di prima
     let db=null, unsub=null;
     function setSync(on){ syncBadge.textContent = on ? 'ON' : 'OFF'; syncBadge.className = on ? 'on' : 'off'; }
 
@@ -228,21 +352,112 @@
       return new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
     }
 
+    async function cloudSaveRecipe(name, recipeData){
+        if(!db) throw new Error("Firebase non configurato.");
+        await db.collection("recipes").doc(name).set(recipeData);
+    }
+    async function cloudDeleteRecipe(name){
+        if(!db) throw new Error("Firebase non configurato.");
+        await db.collection("recipes").doc(name).delete();
+    }
+
+
     function startRealtime(){
       if(!db) return;
-      unsub && unsub();
-      unsub = db.collection("orders").orderBy("createdAt","asc").onSnapshot((snap)=>{
+      // Listener 1: Ordini pendenti
+      db.collection("orders").orderBy("createdAt","asc").onSnapshot((snap)=>{
         const arr=[]; snap.forEach(doc=>arr.push({id:doc.id, ...doc.data()}));
-        orders = arr; renderAll();
+        orders = arr; 
+        
+        // NUOVO: Rimuove dagli ordini selezionati gli ID che non esistono più nella lista pendente
+        const validOrderIds = new Set(orders.map(o => o.id));
+        selectedOrderIds = selectedOrderIds.filter(id => validOrderIds.has(id));
+
+        renderAll();
       });
+
+      // Listener 2: Ricette Menù (sincronizzazione del Menù)
+      db.collection("recipes").onSnapshot((snap)=>{
+        const recipes = {};
+        snap.forEach(doc=>{
+            recipes[doc.id] = doc.data();
+        });
+        PRESET_RECIPES = recipes;
+        PRESET_MENU = Object.keys(PRESET_RECIPES).sort();
+        renderAll(); 
+      });
+      setSync(true);
     }
+    
     async function cloudAdd(order){ if(!db) return null; const ref = await db.collection("orders").add(order); return ref.id; }
     async function cloudPatch(id,patch){ if(!db) return; await db.collection("orders").doc(id).update(patch); }
     async function cloudDelete(id){ if(!db) return; await db.collection("orders").doc(id).delete(); }
 
+
+    // --- LOGICA DI CALCOLO RICETTE MODIFICATA ---
+    function buildRecipeTotals(list){
+      let ordersToProcess = list;
+      
+      // Filtra la lista solo se ci sono ordini selezionati
+      if (selectedOrderIds.length > 0) {
+        ordersToProcess = list.filter(order => selectedOrderIds.includes(order.id));
+      }
+      
+      const recipeMap = new Map();
+
+      for (const order of ordersToProcess) { // Usa ordersToProcess (filtrato o completo)
+        for (const item of order.items) {
+          const productName = item.name;
+          const orderQty = Number(item.qty || 0);
+
+          const recipe = PRESET_RECIPES[productName];
+          if (!recipe || !recipe.items) continue;
+
+          for (const ingredient of recipe.items) {
+            const totalQty = ingredient.qty * orderQty;
+            const key = ingredient.name;
+            const unit = ingredient.unit || 'pz';
+            
+            if (recipeMap.has(key)) {
+              const current = recipeMap.get(key);
+              current.qty += totalQty;
+            } else {
+              recipeMap.set(key, { name: key, qty: totalQty, unit: unit });
+            }
+          }
+        }
+      }
+      
+      return Array.from(recipeMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+    }
+    
+    function renderRecipeTotals(){
+      const t = buildRecipeTotals(orders); // Passa la lista completa, la funzione la filtra internamente
+      
+      let stateText = '';
+      if (selectedOrderIds.length > 0) {
+        stateText = ` (Solo ${selectedOrderIds.length} selezionati)`;
+        clearSelectionBtn.style.display = 'inline-block';
+      } else {
+        clearSelectionBtn.style.display = 'none';
+      }
+      
+      recipeCount.textContent = `Ingredienti: ${t.length}${stateText}`;
+      if(t.length===0){ recipeTotalsWrap.innerHTML = `<div class="muted" style="grid-column: 1 / -1;">Nessun ingrediente da calcolare.</div>`; return; }
+      
+      recipeTotalsWrap.innerHTML = t.map(r=>`
+        <div class="pill">
+          <span title="${escapeHtml(r.name)}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:65%;">${escapeHtml(r.name)}</span>
+          <strong>${r.qty} ${escapeHtml(r.unit)}</strong>
+        </div>
+      `).join('');
+    }
+    // --- FINE LOGICA RICETTE MODIFICATA ---
+
+    // ... (funzioni di rendering non modificate) ...
     function renderMenuSuggestions(){
       const q = menuSearch.value.trim().toLowerCase();
-      const items=(q ? menuItems.filter(m=>m.toLowerCase().includes(q)) : menuItems.slice()).sort();
+      const items=(q ? PRESET_MENU.filter(m=>m.toLowerCase().includes(q)) : PRESET_MENU.slice()).sort();
       menuList.innerHTML = items.slice(0,60).map(m=>`<button type="button" data-name="${escapeHtml(m)}">${escapeHtml(m)}</button>`).join('');
       menuList.style.display = items.length ? 'block':'none';
     }
@@ -269,18 +484,21 @@
             <div class="muted" style="font-size:12px;">${arr.length} ordine/i</div>
           </div>
           <div class="k">
-            ${arr.map(o=>`
-              <div class="order">
+            ${arr.map(o=>{
+                const isSelected = selectedOrderIds.includes(o.id);
+                return `
+              <div class="order ${isSelected ? 'selected' : ''}" data-id="${o.id}">
                 <div class="head"><span>${new Date(o.createdAt).toLocaleTimeString()}</span></div>
                 <ul class="list">
                   ${o.items.map(it=>`<li><span>${escapeHtml(it.name)}</span><strong>${it.qty}×</strong></li>`).join('')}
                 </ul>
                 ${o.note?`<div class="muted" style="margin-top:6px;font-style:italic;">💬 ${escapeHtml(o.note)}</div>`:''}
-                <div class="row" style="gap:8px;margin-top:8px;">
+                <div class="row" style="gap:8px;margin-top:8px;align-items:center;">
                   <button class="btn ok" data-ready="${o.id}">Pronto</button>
                   <button class="btn" data-del="${o.id}">Elimina</button>
+                  <button class="btn" data-select="${o.id}" style="flex:0 0 auto; padding:8px 10px; border-color:${isSelected ? 'var(--brand)' : 'var(--border)'}; background:${isSelected ? 'var(--brand)' : '#fff'}; color:${isSelected ? '#fff' : 'var(--text)'};">${isSelected ? 'Selezionato (✕)' : 'Seleziona'}</button>
                 </div>
-              </div>`).join('')}
+              </div>`}).join('')}
           </div>
         </div>`).join('');
     }
@@ -316,7 +534,151 @@
           <ul class="list">${o.items.map(it=>`<li><span>${escapeHtml(it.name)}</span><strong>${it.qty}×</strong></li>`).join('')}</ul>
         </div>`).join('');
     }
-    function renderAll(){ renderMenuSuggestions(); renderDraft(); renderPending(); renderTotals(); renderQueues(); renderCompleted(); saveAll(); }
+
+
+    // ... (Logica gestione menù non modificata) ...
+    function populateRecipeSelect(){
+      const productNames = Object.keys(PRESET_RECIPES).sort();
+      recipeSelect.innerHTML = `<option value="">— Seleziona un prodotto —</option>` + 
+        productNames.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('');
+      currentRecipe = null;
+      recipeDetail.style.display = 'none';
+      productNameInput.value = '';
+      productCategoryInput.value = '';
+      ingredientsList.innerHTML = '';
+      deleteProductBtn.style.display = 'none';
+    }
+    function renderIngredients(recipe){
+      ingredientsList.innerHTML = recipe.items.map((ing, idx) => `
+        <div class="recipe-item">
+          <span>${escapeHtml(ing.name)}</span>
+          <span>${ing.qty}</span>
+          <span>${escapeHtml(ing.unit)}</span>
+          <button type="button" class="btn danger" style="padding:4px 8px;flex:0 0 50px;" data-ing-remove="${idx}">✕</button>
+        </div>
+      `).join('');
+    }
+
+    manageMenuBtn.addEventListener('click', ()=>{
+      populateRecipeSelect();
+      menuDialog.showModal();
+    });
+    addProductBtn.addEventListener('click', ()=>{
+      currentRecipe = { name: '', category: '', items: [] };
+      recipeSelect.value = '';
+      recipeDetail.style.display = 'block';
+      productNameInput.value = '';
+      productCategoryInput.value = '';
+      ingredientsList.innerHTML = '';
+      productNameInput.focus();
+      deleteProductBtn.style.display = 'none';
+    });
+    recipeSelect.addEventListener('change', (e)=>{
+      const name = e.target.value;
+      if (!name) {
+        recipeDetail.style.display = 'none';
+        currentRecipe = null;
+        return;
+      }
+      currentRecipe = JSON.parse(JSON.stringify(PRESET_RECIPES[name])); 
+      currentRecipe.name = name;
+      productNameInput.value = name;
+      productCategoryInput.value = currentRecipe.category;
+      renderIngredients(currentRecipe);
+      recipeDetail.style.display = 'block';
+      deleteProductBtn.style.display = 'inline-block';
+    });
+    addIngredientBtn.addEventListener('click', ()=>{
+      if (!currentRecipe) return alert("Seleziona o crea prima un prodotto.");
+      const name = (ingNameInput.value||'').trim();
+      const qty = Number(ingQtyInput.value);
+      const unit = (ingUnitInput.value||'').trim();
+      if (!name || qty <= 0 || !unit) return alert("Inserisci nome, quantità (>0) e unità.");
+      currentRecipe.items.push({ name, qty, unit });
+      renderIngredients(currentRecipe);
+      ingNameInput.value = '';
+      ingQtyInput.value = 1;
+      ingUnitInput.value = 'pz';
+      ingNameInput.focus();
+    });
+    ingredientsList.addEventListener('click', (e)=>{
+      const btn = e.target.closest('button[data-ing-remove]');
+      if (!btn || !currentRecipe) return;
+      const index = Number(btn.dataset.ingRemove);
+      currentRecipe.items.splice(index, 1);
+      renderIngredients(currentRecipe);
+    });
+    saveProductBtn.addEventListener('click', async ()=>{
+      if (!currentRecipe) return alert("Nessun prodotto da salvare.");
+      const newName = (productNameInput.value||'').trim();
+      if (!newName) return alert("Il nome del prodotto non può essere vuoto.");
+      const recipeData = {
+        category: (productCategoryInput.value||'').trim(),
+        items: currentRecipe.items
+      };
+      if(db) {
+          try {
+              await cloudSaveRecipe(newName, recipeData);
+              if (currentRecipe.name && currentRecipe.name !== newName) {
+                await cloudDeleteRecipe(currentRecipe.name);
+              }
+              alert(`Prodotto "${newName}" salvato sul Cloud! Aggiornato su tutti i dispositivi.`);
+          } catch(e) {
+              alert(`Errore salvataggio Cloud: ${e.message}`);
+              return; 
+          }
+      } else {
+          if (currentRecipe.name && currentRecipe.name !== newName) {
+            delete PRESET_RECIPES[currentRecipe.name];
+          }
+          PRESET_RECIPES[newName] = recipeData;
+          PRESET_MENU = Object.keys(PRESET_RECIPES).sort();
+          menuItems = PRESET_MENU.slice();
+          saveAll(); 
+          renderAll(); 
+          alert(`Prodotto "${newName}" salvato localmente (Realtime disattivato).`);
+      }
+      menuDialog.close();
+      populateRecipeSelect(); 
+    });
+    deleteProductBtn.addEventListener('click', async ()=>{
+      if (!currentRecipe || !currentRecipe.name) return;
+      if (!confirm(`Sei sicuro di voler eliminare il prodotto "${currentRecipe.name}"?`)) return;
+      
+      if(db){
+          try{
+              await cloudDeleteRecipe(currentRecipe.name);
+              alert("Prodotto eliminato dal Cloud.");
+          } catch(e){
+              alert(`Errore eliminazione Cloud: ${e.message}`);
+              return;
+          }
+      } else {
+          delete PRESET_RECIPES[currentRecipe.name];
+          PRESET_MENU = Object.keys(PRESET_RECIPES).sort();
+          menuItems = PRESET_MENU.slice();
+          saveAll();
+          renderAll();
+          alert("Prodotto eliminato localmente (Realtime disattivato).");
+      }
+      populateRecipeSelect();
+    });
+
+
+    // =================================================================
+    //  INIZIALIZZAZIONE E EVENTI PRINCIPALI
+    // =================================================================
+
+    function renderAll(){ 
+      renderMenuSuggestions(); 
+      renderDraft(); 
+      renderPending(); 
+      renderTotals(); 
+      renderRecipeTotals();
+      renderQueues(); 
+      renderCompleted(); 
+      saveAll(); 
+    }
 
     menuSearch.addEventListener('input',renderMenuSuggestions);
     menuList.addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b) return; menuSearch.value=b.dataset.name; menuList.style.display='none'; });
@@ -343,25 +705,55 @@
 
     pendingWrap.addEventListener('click', async (e)=>{
       const btn=e.target.closest('button'); if(!btn) return;
+      
       if(btn.dataset.ready){
         const id=btn.dataset.ready;
         const idx=orders.findIndex(o=>o.id===id);
         if(idx>=0){
           const [done]=orders.splice(idx,1); done.readyAt=nowISO(); completed.unshift(done);
+          
+          // Rimuove l'ordine completato dalla selezione
+          selectedOrderIds = selectedOrderIds.filter(i => i !== id); 
+
           if(db) try{ await cloudPatch(id,{status:'ready',readyAt:done.readyAt}); }catch{}
           renderAll();
         }
-      } else if(btn.dataset.del){
+      } 
+      else if(btn.dataset.del){
         const id=btn.dataset.del;
         orders = orders.filter(o=>o.id!==id);
+        
+        // Rimuove l'ordine eliminato dalla selezione
+        selectedOrderIds = selectedOrderIds.filter(i => i !== id); 
+
         if(db) try{ await cloudDelete(id); }catch{}
         renderAll();
       }
+      // NUOVO: Gestione Selezione
+      else if(btn.dataset.select){
+        const id=btn.dataset.select;
+        if(selectedOrderIds.includes(id)){
+          selectedOrderIds = selectedOrderIds.filter(i => i !== id);
+        } else {
+          selectedOrderIds.push(id);
+        }
+        renderAll();
+      }
+    });
+    
+    // NUOVO: Listener per il pulsante Cancella Selezione
+    clearSelectionBtn.addEventListener('click', ()=>{
+        selectedOrderIds = [];
+        renderAll();
     });
 
+
+    // PWA Init
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').catch(()=>{});
     }
+    
+    // Inizializzazione
     renderAll();
   </script>
 </body>
